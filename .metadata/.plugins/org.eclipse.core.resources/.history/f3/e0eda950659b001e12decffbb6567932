@@ -1,0 +1,196 @@
+package ar.com.integrador.dao.implement;
+import ar.com.integrador.dao.iOradorDAO;
+import ar.com.integrador.db.AdministradorDeConexiones;
+import ar.com.integrador.domain.Orador;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.ArrayList;
+
+public class OradorDAOMysqlImpl implements iOradorDAO {
+	@Override
+	public Orador getById(Long id)  throws Exception{
+		
+		Connection connection = AdministradorDeConexiones.getConnection();
+		
+		String sql = "select * from oradores where id_orador = " + id;
+	  
+		Statement statement  = connection.createStatement();
+			
+		ResultSet resultset = statement.executeQuery(sql);
+	
+		if (resultset.next()){
+			
+			Long idBd = resultset.getLong("id_orador");
+			String nombreBd = resultset.getString("nombre");
+			String apellidoBd = resultset.getString("apellido");
+			String mailBd = resultset.getString("mail");
+			String temaBd = resultset.getString("tema");
+		
+			return new Orador(idBd,nombreBd,apellidoBd,mailBd,temaBd);
+						
+		}
+		cerrar(connection);
+		return null; 
+	}
+
+	@Override
+	public List<Orador> findAll() throws Exception {
+		
+		Connection connection = AdministradorDeConexiones.getConnection();
+		
+	    String sql = "select * from oradores;";
+			   
+		Statement statement  = connection.createStatement();
+	
+		ResultSet resultset = statement.executeQuery(sql);
+		
+	    	List<Orador> oradores = new ArrayList<Orador>();	
+			
+			while (resultset.next()){
+			Long idBd = resultset.getLong("id_orador");
+			String nombreBd = resultset.getString("nombre");
+			String apellidoBd = resultset.getString("apellido");
+			String mailBd = resultset.getString("mail");
+			String temaBd = resultset.getString("tema");
+		
+			Orador d = new Orador(idBd,nombreBd,apellidoBd,mailBd,temaBd);
+			oradores.add(d);
+					
+			}
+			cerrar(connection);
+	
+		   return oradores; 
+		   }
+	
+
+
+
+@Override
+public void delete(Long id) throws Exception { /* BAJA LOGICA*/
+    Connection connection = AdministradorDeConexiones.getConnection();
+    
+    String deleteSql = "DELETE FROM oradores WHERE id_orador= id";
+    
+    try (PreparedStatement deleteStatement = connection.prepareStatement(deleteSql)) {
+        deleteStatement.setLong(1, id);
+        deleteStatement.executeUpdate();
+    }
+
+    cerrar(connection);
+}
+	
+	
+	@Override
+	public void deleteOrador(Orador orador) throws Exception {
+	    Connection connection = AdministradorDeConexiones.getConnection();
+	    
+	    // Primero, busca el orador basado en la información proporcionada (por ejemplo, el correo electrónico).
+	    String sql = "SELECT id_orador FROM oradores WHERE mail = ?";
+	    PreparedStatement searchStatement = connection.prepareStatement(sql);
+	    searchStatement.setString(1, orador.getMail());
+
+	    ResultSet resultset = searchStatement.executeQuery();
+	    
+	    if (resultset.next()) {
+	        Long idBd = resultset.getLong("id_orador");
+
+	        // Ahora que tienes el ID, puedes eliminar el orador por ID.
+	        String deleteSql = "DELETE FROM oradores WHERE id_orador = ?";
+	        PreparedStatement deleteStatement = connection.prepareStatement(deleteSql);
+	        deleteStatement.setLong(1, idBd);
+	        deleteStatement.executeUpdate();
+	    }
+	    
+	    cerrar(connection);
+	}
+
+	@Override
+	public void update(Orador orador) throws Exception {
+	    Connection connection = AdministradorDeConexiones.getConnection();
+
+	    String sql = "update oradores set nombre = ?, apellido = ?, mail = ?, tema = ? where id_orador = ?";
+	    PreparedStatement statement = connection.prepareStatement(sql);
+	    
+	    statement.setString(1, orador.getNombre());
+	    statement.setString(2, orador.getApellido());
+	    statement.setString(3, orador.getMail());
+	    statement.setString(4, orador.getTema());
+	    statement.setLong(5, orador.getId());
+
+	    statement.executeUpdate();
+
+	    cerrar(connection);
+	}
+	@Override
+	public void create(Orador newOrador) throws Exception {
+		
+        
+		//-1 necesito la conection a la base
+		Connection connection = AdministradorDeConexiones.getConnection();
+		//2 - arma el statement
+		 String sql = "insert into oradores (nombre, apellido,mail, tema) values (?,?,?,?)" ;
+		 PreparedStatement statement  = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+		 statement.setString(1,newOrador.getNombre());
+		 statement.setString(2,newOrador.getApellido());
+		 statement.setString(3,newOrador.getMail());
+		 statement.setString(4,newOrador.getTema());
+		
+		//3 -devuelve un entero devuelve 1 o 0, pero no hace falta confirmar para este caso 
+		 statement.execute();
+		 
+		 ResultSet res = statement.getGeneratedKeys(); // RETORNA LA KEY QUE SE GENERO
+		 if (res.next()) {
+			 System.out.println("Se creo el Orador correctamente");
+		 }
+		 cerrar(connection);
+	}
+	@Override
+	public List<Orador> search(String clave) throws Exception {
+		// 1 - necesito la Connection
+		Connection connection = AdministradorDeConexiones.getConnection();
+
+		// 2 - arma el statement
+		String sql = "SELECT * FROM ORADORES WHERE TEMA LIKE ?";
+		PreparedStatement statement = connection.prepareStatement(sql);
+
+		//setear el valor que va en remplazo del ?
+		statement.setString(1, "%" + clave + "%");
+		
+		// 3 - resultset
+		ResultSet resultSet = statement.executeQuery();
+
+		// Interface i = new ClaseQueImplementaLaInterface();
+		List<Orador> orador = new ArrayList<Orador>();
+
+		// verifico si hay datos
+		while (resultSet.next()) {
+			orador.add(this.crearOrador(resultSet));
+		}
+		
+		cerrar(connection);
+		
+		return orador;
+	}
+	
+	private void cerrar(Connection con) throws Exception{
+		con.close();
+	}
+	
+	private Orador crearOrador(ResultSet resultset) throws Exception {
+		// obtengo el dato del campo id
+		Long idBd = resultset.getLong("id_orador");
+		String nombreBd = resultset.getString("nombre");
+		String apellidoBd = resultset.getString("apellido");
+		String mailBd = resultset.getString("mail");
+		String temaBd = resultset.getString("tema");
+		
+		
+
+		return new Orador(nombreBd,apellidoBd,mailBd,temaBd);
+	}
+	
+}

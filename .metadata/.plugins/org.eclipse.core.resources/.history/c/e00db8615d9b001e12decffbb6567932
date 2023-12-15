@@ -1,0 +1,95 @@
+package ar.com.integrador.controllers;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import ar.com.integrador.dao.*;
+import ar.com.integrador.dao.implement.OradorDAOMysqlImpl;
+import ar.com.integrador.domain.Orador;
+
+@WebServlet("/UpdateOradorController")
+public class UpdateOradorController extends HttpServlet {
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        // Captura de parámetros del formulario
+    	String id = req.getParameter("id");
+    	String nombre = req.getParameter("nombre");
+
+        // Validaciones
+        List<String> errores = validarDatos(req.getParameter("nombre"), req.getParameter("apellido"),
+                req.getParameter("mail"), req.getParameter("tema"));
+
+        if (!errores.isEmpty()) {
+            req.setAttribute("errors", errores);
+            req.getRequestDispatcher("/editar.jsp").forward(req, resp);
+            return;
+        }
+
+        // Actualización del Orador
+        iOradorDAO dao = new OradorDAOMysqlImpl();
+        Orador orador = new Orador(Long.parseLong(req.getParameter("id")), req.getParameter("nombre"),
+                req.getParameter("apellido"), req.getParameter("mail"), req.getParameter("tema"));
+
+        try {
+            dao.update(orador);
+            req.setAttribute("success", List.of("Orador id:" + orador.getId() + " actualizado correctamente"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            req.setAttribute("errors", List.of("Error actualizando Orador<" + e.getMessage()));
+        }
+
+        // Redirección a Dashboard
+        req.getRequestDispatcher("/DashboardOradorController").forward(req, resp);
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        // Manejo de solicitud GET para cargar datos de un Orador para edición
+
+        String id = req.getParameter("id");
+
+        // Validaciones
+
+        iOradorDAO dao = new OradorDAOMysqlImpl();
+        Orador orador = null;
+
+        try {
+            orador = dao.getById(Long.parseLong(id));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        req.setAttribute("orador", orador);
+
+        // Redirección a la página de edición
+        req.getRequestDispatcher("/editar.jsp").forward(req, resp);
+    }
+
+    // Método de validación de datos
+    private List<String> validarDatos(String nombre, String apellido, String mail, String tema) {
+        List<String> errores = new ArrayList<>();
+
+        if (nombre == null || nombre.isEmpty()) {
+            errores.add("Nombre vacío");
+        }
+        if (apellido == null || apellido.isEmpty()) {
+            errores.add("Apellido vacío");
+        }
+        if (mail == null || mail.isEmpty()) {
+            errores.add("Mail vacío");
+        }
+        if (tema == null || tema.isEmpty()) {
+            errores.add("Tema vacío");
+        }
+
+        return errores;
+    }
+}

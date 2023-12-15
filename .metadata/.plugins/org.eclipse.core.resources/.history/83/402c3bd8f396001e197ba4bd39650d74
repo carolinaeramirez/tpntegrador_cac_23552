@@ -1,0 +1,5 @@
+package ar.com.integrador.dao.implement;
+
+public class OradorDAOMysqlImpl {
+
+}

@@ -1,0 +1,5 @@
+package ar.com.integrador.domain;
+
+public class Orador {
+
+}

@@ -1,0 +1,5 @@
+package ar.com.integrador.db;
+
+public class AdministradorDeConexiones {
+
+}
